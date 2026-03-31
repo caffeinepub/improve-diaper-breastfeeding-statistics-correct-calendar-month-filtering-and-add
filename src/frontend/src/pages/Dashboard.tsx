@@ -241,11 +241,11 @@ export default function Dashboard() {
           <div className="space-y-6 min-w-0 overflow-hidden">
             {activeModule === "overview" && (
               <>
+                <ActivityTimeline childId={selectedChildId} />
                 <ChildProfile
                   childId={selectedChildId}
                   onModuleChange={handleQuickAccessNavigation}
                 />
-                <ActivityTimeline childId={selectedChildId} />
               </>
             )}
             {activeModule === "diapers" && (
