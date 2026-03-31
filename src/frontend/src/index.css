@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* Light mode - Baby-friendly pastels with warm tones */
+    --background: 0.98 0.02 40;
+    --foreground: 0.2 0.02 20;
+    --card: 1 0 0;
+    --card-foreground: 0.2 0.02 20;
+    --popover: 1 0 0;
+    --popover-foreground: 0.2 0.02 20;
+
+    /* Primary - Soft pink/purple gradient */
+    --primary: 0.65 0.18 330;
+    --primary-foreground: 1 0 0;
+
+    /* Secondary - Warm peach */
+    --secondary: 0.92 0.04 50;
+    --secondary-foreground: 0.3 0.05 30;
+
+    --muted: 0.95 0.02 40;
+    --muted-foreground: 0.5 0.02 30;
+
+    --accent: 0.88 0.08 280;
+    --accent-foreground: 0.3 0.05 280;
+
+    --destructive: 0.6 0.22 25;
+    --destructive-foreground: 1 0 0;
+
+    --border: 0.9 0.02 40;
+    --input: 0.9 0.02 40;
+    --ring: 0.65 0.18 330;
+
+    /* Chart colors - Baby-friendly palette */
+    --chart-1: 0.7 0.15 340;
+    --chart-2: 0.7 0.15 220;
+    --chart-3: 0.7 0.15 160;
+    --chart-4: 0.75 0.12 50;
+    --chart-5: 0.7 0.15 280;
+  }
+
+  .dark {
+    /* Neutral gray/charcoal backgrounds - completely desaturated, no blue tint */
+    --background: 0.15 0.002 0;
+    --foreground: 0.95 0.002 0;
+    --card: 0.2 0.003 0;
+    --card-foreground: 0.95 0.002 0;
+    --popover: 0.18 0.003 0;
+    --popover-foreground: 0.95 0.002 0;
+
+    /* Primary - Soft pink/purple for accents */
+    --primary: 0.75 0.15 330;
+    --primary-foreground: 0.15 0.002 0;
+
+    /* Secondary - Neutral gray with minimal saturation */
+    --secondary: 0.25 0.003 0;
+    --secondary-foreground: 0.9 0.003 0;
+
+    /* Muted - Neutral gray tones */
+    --muted: 0.25 0.003 0;
+    --muted-foreground: 0.6 0.003 0;
+
+    /* Accent - Keep purple accent but adjust for dark theme */
+    --accent: 0.35 0.08 280;
+    --accent-foreground: 0.95 0.002 0;
+
+    /* Destructive - Keep red for warnings */
+    --destructive: 0.65 0.2 25;
+    --destructive-foreground: 0.95 0.002 0;
+
+    /* Borders and inputs - Neutral gray */
+    --border: 0.3 0.003 0;
+    --input: 0.3 0.003 0;
+    --ring: 0.75 0.15 330;
+
+    /* Chart colors - Maintain colorful accents for data visualization */
+    --chart-1: 0.65 0.18 340;
+    --chart-2: 0.65 0.18 220;
+    --chart-3: 0.65 0.18 160;
+    --chart-4: 0.7 0.15 50;
+    --chart-5: 0.65 0.18 280;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom breakpoint for extra small screens */
+@media (min-width: 475px) {
+  .xs\:inline {
+    display: inline;
+  }
+  .xs\:hidden {
+    display: none;
+  }
+}
