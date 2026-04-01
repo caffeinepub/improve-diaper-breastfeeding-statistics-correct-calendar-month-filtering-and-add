@@ -1,9 +1,10 @@
-import { Activity, Baby, Droplets, Milk } from "lucide-react";
+import { Activity, Baby, Droplets, Milk, UtensilsCrossed } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   useGetBreastfeedingSessionsForChild,
   useGetDiaperLogsForChild,
+  useGetFeedingSessionsForChild,
   useGetMilkPumpingSessionsForChild,
   useGetTummyTimeSessionsForChild,
 } from "../hooks/useQueries";
@@ -19,7 +20,12 @@ function nsToDate(ns: bigint): Date {
   return new Date(Number(ns) / 1_000_000);
 }
 
-type ActivityType = "diaper" | "breastfeeding" | "pumping" | "tummy";
+type ActivityType =
+  | "diaper"
+  | "breastfeeding"
+  | "pumping"
+  | "tummy"
+  | "feeding";
 
 interface TimelineEvent {
   type: ActivityType;
@@ -30,15 +36,20 @@ const ACTIVITY_CONFIG: Record<
   ActivityType,
   { Icon: React.ElementType; color: string; label: string }
 > = {
-  diaper: { Icon: Baby, color: "#f472b6", label: "Pampers" },
+  diaper: { Icon: Baby, color: "#f472b6", label: "Pampersas" },
   breastfeeding: { Icon: Milk, color: "#a78bfa", label: "Žindymas" },
   pumping: { Icon: Droplets, color: "#60a5fa", label: "Pieno traukimas" },
-  tummy: { Icon: Activity, color: "#34d399", label: "Tummy time" },
+  tummy: { Icon: Activity, color: "#34d399", label: "Pilvo laikas" },
+  feeding: { Icon: UtensilsCrossed, color: "#fb923c", label: "Maitinimas" },
 };
 
 export default function ActivityTimeline({ childId }: ActivityTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => new Date());
+  const [activeLabel, setActiveLabel] = useState<{
+    key: string;
+    label: string;
+  } | null>(null);
 
   const { data: diaperLogs = [] } = useGetDiaperLogsForChild(childId);
   const { data: breastfeedingSessions = [] } =
@@ -46,6 +57,7 @@ export default function ActivityTimeline({ childId }: ActivityTimelineProps) {
   const { data: pumpingSessions = [] } =
     useGetMilkPumpingSessionsForChild(childId);
   const { data: tummySessions = [] } = useGetTummyTimeSessionsForChild(childId);
+  const { data: feedingSessions = [] } = useGetFeedingSessionsForChild(childId);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
@@ -56,6 +68,13 @@ export default function ActivityTimeline({ childId }: ActivityTimelineProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
     }
+  }, []);
+
+  // Hide label when clicking outside
+  useEffect(() => {
+    const handler = () => setActiveLabel(null);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
   }, []);
 
   const currentHour = new Date(now);
@@ -88,6 +107,10 @@ export default function ActivityTimeline({ childId }: ActivityTimelineProps) {
     ...tummySessions.map((s) => ({
       type: "tummy" as ActivityType,
       time: nsToDate(s.startTime),
+    })),
+    ...feedingSessions.map((s) => ({
+      type: "feeding" as ActivityType,
+      time: nsToDate(s.timestamp),
     })),
   ];
 
@@ -196,23 +219,46 @@ export default function ActivityTimeline({ childId }: ActivityTimelineProps) {
                 >
                   {colEvents.map((ev, evIdx) => {
                     const cfg = ACTIVITY_CONFIG[ev.type];
+                    const eventKey = `${idx}-${evIdx}-${ev.type}`;
+                    const isActive = activeLabel?.key === eventKey;
                     return (
-                      <div
-                        key={`${idx}-${evIdx}-${ev.type}`}
-                        title={cfg.label}
-                        className="flex items-center justify-center rounded-full flex-shrink-0"
-                        style={{
-                          width: 20,
-                          height: 20,
-                          background: `${cfg.color}20`,
-                          border: `1px solid ${cfg.color}50`,
-                        }}
-                      >
-                        <cfg.Icon
-                          size={11}
-                          style={{ color: cfg.color }}
-                          strokeWidth={2}
-                        />
+                      <div key={eventKey} className="relative">
+                        <button
+                          type="button"
+                          title={cfg.label}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveLabel(
+                              isActive
+                                ? null
+                                : { key: eventKey, label: cfg.label },
+                            );
+                          }}
+                          className="flex items-center justify-center rounded-full flex-shrink-0 transition-transform hover:scale-110"
+                          style={{
+                            width: 20,
+                            height: 20,
+                            background: `${cfg.color}20`,
+                            border: `1px solid ${cfg.color}${isActive ? "cc" : "50"}`,
+                            outline: isActive
+                              ? `2px solid ${cfg.color}60`
+                              : undefined,
+                          }}
+                        >
+                          <cfg.Icon
+                            size={11}
+                            style={{ color: cfg.color }}
+                            strokeWidth={2}
+                          />
+                        </button>
+                        {isActive && (
+                          <div
+                            className="absolute z-50 bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-0.5 text-[10px] font-medium text-white shadow-lg pointer-events-none"
+                            style={{ background: cfg.color }}
+                          >
+                            {cfg.label}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

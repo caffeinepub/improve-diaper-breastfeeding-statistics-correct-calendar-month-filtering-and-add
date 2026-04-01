@@ -16,6 +16,7 @@ import {
   Menu,
   Milk,
   Scale,
+  UtensilsCrossed,
 } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -31,7 +32,8 @@ interface MobileMenuProps {
     | "tummytime"
     | "weight"
     | "journal"
-    | "pumping";
+    | "pumping"
+    | "feeding";
   onModuleChange: (
     module:
       | "overview"
@@ -40,7 +42,8 @@ interface MobileMenuProps {
       | "tummytime"
       | "weight"
       | "journal"
-      | "pumping",
+      | "pumping"
+      | "feeding",
   ) => void;
 }
 
@@ -63,6 +66,7 @@ export default function MobileMenu({
     { id: "weight" as const, label: "Svoris", icon: Scale },
     { id: "journal" as const, label: "Žurnalas", icon: BookOpen },
     { id: "pumping" as const, label: "Pieno nutraukimas", icon: Droplets },
+    { id: "feeding" as const, label: "Maitinimas", icon: UtensilsCrossed },
   ];
 
   const handleModuleClick = (
@@ -73,7 +77,8 @@ export default function MobileMenu({
       | "tummytime"
       | "weight"
       | "journal"
-      | "pumping",
+      | "pumping"
+      | "feeding",
   ) => {
     onModuleChange(moduleId);
     setOpen(false);

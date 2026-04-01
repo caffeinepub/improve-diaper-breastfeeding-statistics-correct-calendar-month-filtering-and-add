@@ -81,6 +81,13 @@ actor {
     mlAmount : Float;
     side : { #left; #right; #both };
   };
+  public type FeedingSession = {
+    sessionId : Text;
+    childId : Text;
+    timestamp : Int;
+    mlAmount : Float;
+    feedingType : { #misinukas; #mamosPienas };
+  };
   public type ActiveTimerState = {
     childId : Text;
     userId : Principal;
@@ -134,17 +141,18 @@ actor {
   };
 
   // ---------- Persistent State ----------
-  var persistentChildProfiles = Map.empty<Text, ChildProfile>();
-  var persistentDiaperLogs = Map.empty<Text, DiaperLog>();
-  var persistentBreastfeedingSessions = Map.empty<Text, BreastfeedingSession>();
-  var persistentTummyTimeSessions = Map.empty<Text, TummyTimeSession>();
-  var persistentJournalNotes = Map.empty<Text, JournalNote>();
-  var persistentWeightEntries = Map.empty<Text, WeightEntry>();
-  var persistentMilkPumpingSessions = Map.empty<Text, MilkPumpingSession>();
-  var persistentUserProfiles = Map.empty<Principal, UserProfile>();
-  var persistentChildInviteLinks = Map.empty<Text, ChildInviteLink>();
-  var persistentActiveTimers = Map.empty<Text, ActiveTimerState>();
-  var persistentTummyTimeTimers = Map.empty<Text, TummyTimeTimerState>();
+  stable var persistentChildProfiles = Map.empty<Text, ChildProfile>();
+  stable var persistentDiaperLogs = Map.empty<Text, DiaperLog>();
+  stable var persistentBreastfeedingSessions = Map.empty<Text, BreastfeedingSession>();
+  stable var persistentTummyTimeSessions = Map.empty<Text, TummyTimeSession>();
+  stable var persistentJournalNotes = Map.empty<Text, JournalNote>();
+  stable var persistentWeightEntries = Map.empty<Text, WeightEntry>();
+  stable var persistentMilkPumpingSessions = Map.empty<Text, MilkPumpingSession>();
+  stable var persistentFeedingSessions = Map.empty<Text, FeedingSession>();
+  stable var persistentUserProfiles = Map.empty<Principal, UserProfile>();
+  stable var persistentChildInviteLinks = Map.empty<Text, ChildInviteLink>();
+  stable var persistentActiveTimers = Map.empty<Text, ActiveTimerState>();
+  stable var persistentTummyTimeTimers = Map.empty<Text, TummyTimeTimerState>();
 
   // ---------- Helper Functions ----------
   func toChildProfileView(profile : ChildProfile) : ChildProfileView {
@@ -1401,6 +1409,73 @@ actor {
           Runtime.trap("Neturite prieigos");
         };
         persistentMilkPumpingSessions.remove(sessionId);
+      };
+    };
+  };
+
+  public shared ({ caller }) func addFeedingSession(
+    childId : Text,
+    timestamp : Int,
+    mlAmount : Float,
+    feedingType : { #misinukas; #mamosPienas },
+  ) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Neautorizuota");
+    };
+    switch (persistentChildProfiles.get(childId)) {
+      case (null) { Runtime.trap("Vaikas nerastas") };
+      case (?child) {
+        if (not canAccessChild(child, caller)) {
+          Runtime.trap("Neturite prieigos");
+        };
+        let blob = await Random.blob();
+        let sessionId = InviteLinksModule.generateUUID(blob);
+        let session : FeedingSession = {
+          sessionId;
+          childId;
+          timestamp;
+          mlAmount;
+          feedingType;
+        };
+        persistentFeedingSessions.add(sessionId, session);
+      };
+    };
+  };
+
+  public query ({ caller }) func getFeedingSessionsForChild(childId : Text) : async [FeedingSession] {
+    switch (persistentChildProfiles.get(childId)) {
+      case (null) { Runtime.trap("Vaikas nerastas") };
+      case (?child) {
+        if (not child.isPublic) {
+          if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+            Runtime.trap("Neautorizuota");
+          };
+          if (not canAccessChild(child, caller)) {
+            Runtime.trap("Neturite prieigos");
+          };
+        };
+        let sessions = List.empty<FeedingSession>();
+        for ((_, s) in persistentFeedingSessions.entries()) {
+          if (s.childId == childId) {
+            sessions.add(s);
+          };
+        };
+        sessions.toArray();
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteFeedingSession(childId : Text, sessionId : Text) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Neautorizuota");
+    };
+    switch (persistentChildProfiles.get(childId)) {
+      case (null) { Runtime.trap("Vaikas nerastas") };
+      case (?child) {
+        if (not canAccessChild(child, caller)) {
+          Runtime.trap("Neturite prieigos");
+        };
+        persistentFeedingSessions.remove(sessionId);
       };
     };
   };

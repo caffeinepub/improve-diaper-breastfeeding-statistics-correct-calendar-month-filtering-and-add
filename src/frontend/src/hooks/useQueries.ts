@@ -771,3 +771,72 @@ export function useDeleteMilkPumpingSession() {
     },
   });
 }
+
+// Feeding Queries
+export function useGetFeedingSessionsForChild(childId: string | null) {
+  const { actor } = useActor();
+  return useQuery({
+    queryKey: ["feedingSessions", childId],
+    queryFn: async () => {
+      if (!actor || !childId) return [];
+      return await actor.getFeedingSessionsForChild(childId);
+    },
+    enabled: !!actor && !!childId,
+  });
+}
+
+export function useAddFeedingSession() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      childId,
+      timestamp,
+      mlAmount,
+      feedingType,
+    }: {
+      childId: string;
+      timestamp: bigint;
+      mlAmount: number;
+      feedingType: "misinukas" | "mamosPienas";
+    }) => {
+      if (!actor) throw new Error("Actor not available");
+      const typeVariant =
+        feedingType === "misinukas"
+          ? { misinukas: null }
+          : { mamosPienas: null };
+      return actor.addFeedingSession(
+        childId,
+        timestamp,
+        mlAmount,
+        typeVariant as any,
+      );
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["feedingSessions", variables.childId],
+      });
+    },
+  });
+}
+
+export function useDeleteFeedingSession() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      childId,
+      sessionId,
+    }: { childId: string; sessionId: string }) => {
+      if (!actor) throw new Error("Actor not available");
+      return actor.deleteFeedingSession(childId, sessionId);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["feedingSessions", variables.childId],
+      });
+    },
+  });
+}

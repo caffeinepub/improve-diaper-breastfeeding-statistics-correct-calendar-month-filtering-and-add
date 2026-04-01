@@ -179,6 +179,13 @@ export interface MilkPumpingSession {
     mlAmount: number;
     side: PumpSide;
 }
+export interface FeedingSession {
+    sessionId: string;
+    childId: string;
+    timestamp: bigint;
+    mlAmount: number;
+    feedingType: { misinukas: null } | { mamosPienas: null };
+}
 export interface UserProfile {
     name: string;
 }
@@ -215,6 +222,7 @@ export interface backendInterface {
     addJournalNote(childId: string, text: string, color: NoteColor): Promise<void>;
     addManualBreastfeedingSession(childId: string, date: bigint, duration: bigint, side: Variant_left_right): Promise<void>;
     addWeightEntry(childId: string, weight: number, timestamp: bigint): Promise<void>;
+    addFeedingSession(childId: string, timestamp: bigint, mlAmount: number, feedingType: { misinukas: null } | { mamosPienas: null }): Promise<void>;
     addMilkPumpingSession(childId: string, timestamp: bigint, mlAmount: number, side: { left: null } | { right: null } | { both: null }): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     calculateAgeInDays(childId: string): Promise<bigint>;
@@ -222,6 +230,7 @@ export interface backendInterface {
     completeTummyTimeSession(childId: string): Promise<void>;
     deleteJournalNote(childId: string, noteId: string): Promise<void>;
     deleteWeightEntry(childId: string, weightId: string): Promise<void>;
+    deleteFeedingSession(childId: string, sessionId: string): Promise<void>;
     deleteMilkPumpingSession(childId: string, sessionId: string): Promise<void>;
     generateChildInviteLink(childId: string): Promise<string>;
     generateInviteCode(): Promise<string>;
@@ -247,6 +256,7 @@ export interface backendInterface {
     getTummyTimeSessionsForChild(childId: string): Promise<Array<TummyTimeSession>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getWeightEntriesForChild(childId: string): Promise<Array<WeightEntry>>;
+    getFeedingSessionsForChild(childId: string): Promise<Array<FeedingSession>>;
     getMilkPumpingSessionsForChild(childId: string): Promise<Array<MilkPumpingSession>>;
     isCallerAdmin(): Promise<boolean>;
     logDiaperChange(childId: string, kakis: boolean, sysius: boolean, tuscia: boolean): Promise<void>;
@@ -437,6 +447,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async addFeedingSession(arg0: string, arg1: bigint, arg2: number, arg3: { misinukas: null } | { mamosPienas: null }): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addFeedingSession(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addFeedingSession(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
     async addMilkPumpingSession(arg0: string, arg1: bigint, arg2: number, arg3: { left: null } | { right: null } | { both: null }): Promise<void> {
         if (this.processError) {
             try {
@@ -532,6 +556,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteWeightEntry(arg0, arg1);
+            return result;
+        }
+    }
+    async deleteFeedingSession(arg0: string, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteFeedingSession(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteFeedingSession(arg0, arg1);
             return result;
         }
     }
@@ -830,6 +868,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getWeightEntriesForChild(arg0);
+            return result;
+        }
+    }
+    async getFeedingSessionsForChild(arg0: string): Promise<Array<FeedingSession>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFeedingSessionsForChild(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFeedingSessionsForChild(arg0);
             return result;
         }
     }

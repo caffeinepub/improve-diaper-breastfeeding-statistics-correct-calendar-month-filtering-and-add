@@ -8,6 +8,7 @@ import {
   Home,
   Milk,
   Scale,
+  UtensilsCrossed,
 } from "lucide-react";
 import React from "react";
 
@@ -19,7 +20,8 @@ interface ModuleNavigationProps {
     | "tummytime"
     | "weight"
     | "journal"
-    | "pumping";
+    | "pumping"
+    | "feeding";
   onModuleChange: (
     module:
       | "overview"
@@ -28,7 +30,8 @@ interface ModuleNavigationProps {
       | "tummytime"
       | "weight"
       | "journal"
-      | "pumping",
+      | "pumping"
+      | "feeding",
   ) => void;
 }
 
@@ -44,6 +47,7 @@ export default function ModuleNavigation({
     { id: "weight" as const, label: "Svoris", icon: Scale },
     { id: "journal" as const, label: "Žurnalas", icon: BookOpen },
     { id: "pumping" as const, label: "Pieno nutraukimas", icon: Droplets },
+    { id: "feeding" as const, label: "Maitinimas", icon: UtensilsCrossed },
   ];
 
   return (

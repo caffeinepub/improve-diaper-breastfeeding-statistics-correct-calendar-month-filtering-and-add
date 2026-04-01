@@ -9,6 +9,7 @@ import BreastfeedingModule from "../components/BreastfeedingModule";
 import ChildProfile from "../components/ChildProfile";
 import ChildSelector from "../components/ChildSelector";
 import DiaperModule from "../components/DiaperModule";
+import FeedingModule from "../components/FeedingModule";
 import JournalModule from "../components/JournalModule";
 import MobileMenu from "../components/MobileMenu";
 import ModuleNavigation from "../components/ModuleNavigation";
@@ -28,7 +29,8 @@ type ActiveModule =
   | "tummytime"
   | "weight"
   | "journal"
-  | "pumping";
+  | "pumping"
+  | "feeding";
 
 export default function Dashboard() {
   const { identity, isInitializing } = useInternetIdentity();
@@ -265,6 +267,9 @@ export default function Dashboard() {
             )}
             {activeModule === "pumping" && (
               <PumpingModule childId={selectedChildId} />
+            )}
+            {activeModule === "feeding" && (
+              <FeedingModule childId={selectedChildId} />
             )}
           </div>
 

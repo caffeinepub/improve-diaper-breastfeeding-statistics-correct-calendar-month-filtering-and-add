@@ -97,6 +97,13 @@ export interface MilkPumpingSession {
     mlAmount: number;
     side: PumpSide;
 }
+export interface FeedingSession {
+    sessionId: string;
+    childId: string;
+    timestamp: bigint;
+    mlAmount: number;
+    feedingType: { misinukas: null } | { mamosPienas: null };
+}
 export interface UserProfile {
     name: string;
 }
@@ -155,6 +162,9 @@ export interface backendInterface {
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getWeightEntriesForChild(childId: string): Promise<Array<WeightEntry>>;
     getMilkPumpingSessionsForChild(childId: string): Promise<Array<MilkPumpingSession>>;
+    addFeedingSession(childId: string, timestamp: bigint, mlAmount: number, feedingType: { misinukas: null } | { mamosPienas: null }): Promise<void>;
+    deleteFeedingSession(childId: string, sessionId: string): Promise<void>;
+    getFeedingSessionsForChild(childId: string): Promise<Array<FeedingSession>>;
     isCallerAdmin(): Promise<boolean>;
     logDiaperChange(childId: string, kakis: boolean, sysius: boolean, tuscia: boolean): Promise<void>;
     pauseBreastfeedingTimer(childId: string): Promise<void>;
