@@ -155,6 +155,18 @@ actor {
   stable var persistentTummyTimeTimers = Map.empty<Text, TummyTimeTimerState>();
 
   // ---------- Helper Functions ----------
+  // Auto-register caller as user if not already registered (survives upgrades)
+  func autoRegisterUser(caller : Principal) {
+    if (not caller.isAnonymous()) {
+      switch (accessControlState.userRoles.get(caller)) {
+        case (null) {
+          accessControlState.userRoles.add(caller, #user);
+        };
+        case (_) {};
+      };
+    };
+  };
+
   func toChildProfileView(profile : ChildProfile) : ChildProfileView {
     {
       id = profile.id;
@@ -191,9 +203,7 @@ actor {
 
   // ---------- User Profile Management ----------
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali peržiūrėti profilius");
-    };
+    autoRegisterUser(caller);
     persistentUserProfiles.get(caller);
   };
 
@@ -205,9 +215,7 @@ actor {
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali išsaugoti profilius");
-    };
+    autoRegisterUser(caller);
     persistentUserProfiles.add(caller, profile);
   };
 
@@ -263,9 +271,7 @@ actor {
 
   // ---------- Child Management ----------
   public shared ({ caller }) func addChild(name : Text, birthDate : Int, photo : ?Storage.ExternalBlob, isPublic : Bool) : async Text {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali pridėti vaikus");
-    };
+    autoRegisterUser(caller);
 
     let childId = name # birthDate.toText();
     let childProfile : ChildProfile = {
@@ -282,9 +288,7 @@ actor {
   };
 
   public shared ({ caller }) func toggleChildVisibility(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali keisti matomumą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -311,8 +315,8 @@ actor {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
         if (child.isPublic) { return toChildProfileView(child) };
-        if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-          Runtime.trap("Neautorizuota: reikalinga autentifikacija privatiems profiliams");
+        if (caller.isAnonymous()) {
+          Runtime.trap("Neautorizuota: reikalinga prisijungti");
         };
         if (child.parent == caller or hasSharedAccess(child, caller)) {
           return toChildProfileView(child);
@@ -332,9 +336,7 @@ actor {
   };
 
   public query ({ caller }) func getChildrenByParent(parent : Principal) : async [ChildProfileView] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: reikalinga autentifikacija");
-    };
+    autoRegisterUser(caller);
     if (parent != caller and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Neautorizuota: galima peržiūrėti tik savo vaikus");
     };
@@ -346,9 +348,7 @@ actor {
   };
 
   public query ({ caller }) func getSharedChildren() : async [ChildProfileView] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: reikalinga autentifikacija");
-    };
+    autoRegisterUser(caller);
     toChildProfileViewArray(
       List.fromArray(
         persistentChildProfiles.values().toArray().filter(func(c) { hasSharedAccess(c, caller) })
@@ -361,8 +361,8 @@ actor {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
         if (not child.isPublic) {
-          if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Runtime.trap("Neautorizuota: reikalinga autentifikacija privatiems duomenims");
+          if (caller.isAnonymous()) {
+            Runtime.trap("Neautorizuota: reikalinga prisijungti");
           };
           if (not canAccessChild(child, caller)) {
             Runtime.trap("Neautorizuota: nėra prieigos prie šio vaiko duomenų");
@@ -377,9 +377,7 @@ actor {
   };
 
   public shared ({ caller }) func regenerateChildPhoto(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali regeneruoti nuotraukas");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -415,8 +413,8 @@ actor {
             totalTummyTime;
           };
         };
-        if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-          Runtime.trap("Neautorizuota: reikalinga autentifikacija privatiems duomenims");
+        if (caller.isAnonymous()) {
+          Runtime.trap("Neautorizuota: reikalinga prisijungti");
         };
         if (not canAccessChild(child, caller)) {
           Runtime.trap("Neautorizuota: nėra prieigos prie šio vaiko duomenų");
@@ -441,9 +439,7 @@ actor {
 
   // ---------- Child Sharing System ----------
   public shared ({ caller }) func generateChildInviteLink(childId : Text) : async Text {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali generuoti kvietimo nuorodas");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -467,9 +463,7 @@ actor {
   };
 
   public shared ({ caller }) func acceptChildInvite(inviteCode : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali priimti kvietimus");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildInviteLinks.get(inviteCode)) {
       case (null) { Runtime.trap("Kvietimo kodas nerastas") };
@@ -516,9 +510,7 @@ actor {
   };
 
   public shared ({ caller }) func shareChildWithUser(childId : Text, userId : Principal) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali dalintis vaiko profiliu");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -551,9 +543,7 @@ actor {
   };
 
   public shared ({ caller }) func revokeChildAccess(childId : Text, userId : Principal) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali atšaukti prieigą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -578,9 +568,7 @@ actor {
   };
 
   public query ({ caller }) func getSharedUsers(childId : Text) : async [Principal] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: reikalinga autentifikacija");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -600,9 +588,7 @@ actor {
     sysius : Bool,
     tuscia : Bool
   ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali registruoti sauskelnių keitimus");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -639,8 +625,8 @@ actor {
           };
           return logs.toArray();
         };
-        if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-          Runtime.trap("Neautorizuota: reikalinga autentifikacija privatiems duomenims");
+        if (caller.isAnonymous()) {
+          Runtime.trap("Neautorizuota: reikalinga prisijungti");
         };
         if (not canAccessChild(child, caller)) {
           Runtime.trap("Neautorizuota: nėra prieigos prie šio vaiko duomenų");
@@ -662,9 +648,7 @@ actor {
     childId : Text,
     side : { #left; #right }
   ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali pradėti žindymo seansą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -689,9 +673,7 @@ actor {
   };
 
   public shared ({ caller }) func pauseBreastfeedingTimer(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali pristabdyti žindymo seansą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -724,9 +706,7 @@ actor {
   };
 
   public shared ({ caller }) func resumeBreastfeedingTimer(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali tęsti žindymo seansą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -763,9 +743,7 @@ actor {
   };
 
   public shared ({ caller }) func completeBreastfeedingSession(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali užbaigti žindymo seansą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -797,9 +775,7 @@ actor {
   };
 
   public query ({ caller }) func getActiveBreastfeedingTimer(childId : Text) : async ?ActiveTimerState {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: reikalinga autentifikacija");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -827,8 +803,8 @@ actor {
           };
           return sessions.toArray();
         };
-        if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-          Runtime.trap("Neautorizuota: reikalinga autentifikacija privatiems duomenims");
+        if (caller.isAnonymous()) {
+          Runtime.trap("Neautorizuota: reikalinga prisijungti");
         };
         if (not canAccessChild(child, caller)) {
           Runtime.trap("Neautorizuota: nėra prieigos prie šio vaiko duomenų");
@@ -851,9 +827,7 @@ actor {
     duration : Int,
     side : { #left; #right }
   ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali pridėti žindymo seansus");
-    };
+    autoRegisterUser(caller);
 
     if (duration <= 0) {
       Runtime.trap("Trukmė turi būti teigiama");
@@ -881,9 +855,7 @@ actor {
 
   // ---------- Tummy Time Tracking ----------
   public shared ({ caller }) func startTummyTimeSession(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali pradėti pilvo laiko seansą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -907,9 +879,7 @@ actor {
   };
 
   public shared ({ caller }) func pauseTummyTimeTimer(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali pristabdyti pilvo laiko seansą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -941,9 +911,7 @@ actor {
   };
 
   public shared ({ caller }) func resumeTummyTimeTimer(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali tęsti pilvo laiko seansą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -979,9 +947,7 @@ actor {
   };
 
   public shared ({ caller }) func completeTummyTimeSession(childId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali užbaigti pilvo laiko seansą");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -1012,9 +978,7 @@ actor {
   };
 
   public query ({ caller }) func getActiveTummyTimeTimer(childId : Text) : async ?TummyTimeTimerState {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: reikalinga autentifikacija");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -1042,8 +1006,8 @@ actor {
           };
           return sessions.toArray();
         };
-        if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-          Runtime.trap("Neautorizuota: reikalinga autentifikacija privatiems duomenims");
+        if (caller.isAnonymous()) {
+          Runtime.trap("Neautorizuota: reikalinga prisijungti");
         };
         if (not canAccessChild(child, caller)) {
           Runtime.trap("Neautorizuota: nėra prieigos prie šio vaiko duomenų");
@@ -1062,9 +1026,7 @@ actor {
 
   // ---------- Journal (Sticky Notes) ----------
   public shared ({ caller }) func addJournalNote(childId : Text, text : Text, color : NoteColor) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali pridėti užrašus");
-    };
+    autoRegisterUser(caller);
 
     if (text.isEmpty()) {
       Runtime.trap("Tekstas yra privalomas");
@@ -1104,8 +1066,8 @@ actor {
           };
           return notes.toArray();
         };
-        if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-          Runtime.trap("Neautorizuota: reikalinga autentifikacija privatiems duomenims");
+        if (caller.isAnonymous()) {
+          Runtime.trap("Neautorizuota: reikalinga prisijungti");
         };
         if (not canAccessChild(child, caller)) {
           Runtime.trap("Neautorizuota: nėra prieigos prie šio vaiko duomenų");
@@ -1123,9 +1085,7 @@ actor {
   };
 
   public shared ({ caller }) func updateJournalNote(childId : Text, noteId : Text, newText : Text, newColor : ?NoteColor) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali atnaujinti užrašus");
-    };
+    autoRegisterUser(caller);
 
     if (newText.isEmpty()) {
       Runtime.trap("Tekstas yra privalomas");
@@ -1162,9 +1122,7 @@ actor {
   };
 
   public shared ({ caller }) func deleteJournalNote(childId : Text, noteId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali ištrinti užrašus");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -1191,8 +1149,8 @@ actor {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
         if (not child.isPublic) {
-          if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Runtime.trap("Neautorizuota: reikalinga autentifikacija privatiems duomenims");
+          if (caller.isAnonymous()) {
+            Runtime.trap("Neautorizuota: reikalinga prisijungti");
           };
           if (not canAccessChild(child, caller)) {
             Runtime.trap("Neautorizuota: nėra prieigos prie šio vaiko duomenų");
@@ -1227,9 +1185,7 @@ actor {
     weight : Float,
     timestamp : Int,
   ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali pridėti svorio įrašus");
-    };
+    autoRegisterUser(caller);
 
     if (weight <= 0) {
       Runtime.trap("Svorio reikšmė negali būti nulinė arba mažesnė už nulį");
@@ -1266,8 +1222,8 @@ actor {
           };
           return weightEntries.toArray();
         };
-        if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-          Runtime.trap("Neturite prieigos prie šio vaiko profilio");
+        if (caller.isAnonymous()) {
+          Runtime.trap("Neautorizuota: reikalinga prisijungti");
         };
         if (not canAccessChild(child, caller)) {
           Runtime.trap("Neturite prieigos prie šio vaiko profilio");
@@ -1289,9 +1245,7 @@ actor {
     newWeight : Float,
     newTimestamp : Int,
   ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali redaguoti svorio įrašus");
-    };
+    autoRegisterUser(caller);
 
     if (newWeight <= 0) {
       Runtime.trap("Svorio reikšmė negali būti nulinė arba mažesnė už nulį");
@@ -1323,9 +1277,7 @@ actor {
   };
 
   public shared ({ caller }) func deleteWeightEntry(childId : Text, weightId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota: tik naudotojai gali ištrinti svorio įrašus");
-    };
+    autoRegisterUser(caller);
 
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
@@ -1352,9 +1304,7 @@ actor {
     mlAmount : Float,
     side : { #left; #right; #both },
   ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota");
-    };
+    autoRegisterUser(caller);
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
@@ -1380,8 +1330,8 @@ actor {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
         if (not child.isPublic) {
-          if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Runtime.trap("Neautorizuota");
+          if (caller.isAnonymous()) {
+            Runtime.trap("Neautorizuota: reikalinga prisijungti");
           };
           if (not canAccessChild(child, caller)) {
             Runtime.trap("Neturite prieigos");
@@ -1399,9 +1349,7 @@ actor {
   };
 
   public shared ({ caller }) func deleteMilkPumpingSession(childId : Text, sessionId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota");
-    };
+    autoRegisterUser(caller);
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
@@ -1419,9 +1367,7 @@ actor {
     mlAmount : Float,
     feedingType : { #misinukas; #mamosPienas },
   ) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota");
-    };
+    autoRegisterUser(caller);
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
@@ -1447,8 +1393,8 @@ actor {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
         if (not child.isPublic) {
-          if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-            Runtime.trap("Neautorizuota");
+          if (caller.isAnonymous()) {
+            Runtime.trap("Neautorizuota: reikalinga prisijungti");
           };
           if (not canAccessChild(child, caller)) {
             Runtime.trap("Neturite prieigos");
@@ -1466,9 +1412,7 @@ actor {
   };
 
   public shared ({ caller }) func deleteFeedingSession(childId : Text, sessionId : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Neautorizuota");
-    };
+    autoRegisterUser(caller);
     switch (persistentChildProfiles.get(childId)) {
       case (null) { Runtime.trap("Vaikas nerastas") };
       case (?child) {
