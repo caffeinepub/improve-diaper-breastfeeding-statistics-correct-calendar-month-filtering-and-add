@@ -104,6 +104,21 @@ export const WeightEntry = IDL.Record({
   'weightId' : IDL.Text,
   'timestamp' : IDL.Int,
 });
+export const MilkPumpingSession = IDL.Record({
+  'sessionId' : IDL.Text,
+  'childId' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'mlAmount' : IDL.Float64,
+  'side' : IDL.Variant({ 'left' : IDL.Null, 'right' : IDL.Null, 'both' : IDL.Null }),
+});
+export const FeedingSession = IDL.Record({
+  'sessionId' : IDL.Text,
+  'childId' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'mlAmount' : IDL.Float64,
+  'feedingType' : IDL.Variant({ 'misinukas' : IDL.Null, 'mamosPienas' : IDL.Null }),
+});
+
 
 export const idlService = IDL.Service({
   '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -151,12 +166,16 @@ export const idlService = IDL.Service({
       [],
     ),
   'addWeightEntry' : IDL.Func([IDL.Text, IDL.Float64, IDL.Int], [], []),
+  'addFeedingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'misinukas' : IDL.Null, 'mamosPienas' : IDL.Null })], [], []),
+  'addMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'left' : IDL.Null, 'right' : IDL.Null, 'both' : IDL.Null })], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'calculateAgeInDays' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
   'completeBreastfeedingSession' : IDL.Func([IDL.Text], [], []),
   'completeTummyTimeSession' : IDL.Func([IDL.Text], [], []),
   'deleteJournalNote' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'deleteWeightEntry' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'deleteFeedingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'deleteMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
   'generateChildInviteLink' : IDL.Func([IDL.Text], [IDL.Text], []),
   'generateInviteCode' : IDL.Func([], [IDL.Text], []),
   'getActiveBreastfeedingTimer' : IDL.Func(
@@ -218,6 +237,16 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'getFeedingSessionsForChild' : IDL.Func(
+    [IDL.Text],
+    [IDL.Vec(FeedingSession)],
+    ['query'],
+  ),
+  'getMilkPumpingSessionsForChild' : IDL.Func(
+    [IDL.Text],
+    [IDL.Vec(MilkPumpingSession)],
+    ['query'],
+  ),
   'getWeightEntriesForChild' : IDL.Func(
       [IDL.Text],
       [IDL.Vec(WeightEntry)],
@@ -361,6 +390,20 @@ export const idlFactory = ({ IDL }) => {
     'weightId' : IDL.Text,
     'timestamp' : IDL.Int,
   });
+  const MilkPumpingSession = IDL.Record({
+    'sessionId' : IDL.Text,
+    'childId' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'mlAmount' : IDL.Float64,
+    'side' : IDL.Variant({ 'left' : IDL.Null, 'right' : IDL.Null, 'both' : IDL.Null }),
+  });
+  const FeedingSession = IDL.Record({
+    'sessionId' : IDL.Text,
+    'childId' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'mlAmount' : IDL.Float64,
+    'feedingType' : IDL.Variant({ 'misinukas' : IDL.Null, 'mamosPienas' : IDL.Null }),
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -408,12 +451,20 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'addWeightEntry' : IDL.Func([IDL.Text, IDL.Float64, IDL.Int], [], []),
+    'addFeedingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'misinukas' : IDL.Null, 'mamosPienas' : IDL.Null })], [], []),
+    'addMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'left' : IDL.Null, 'right' : IDL.Null, 'both' : IDL.Null })], [], []),
+  'addFeedingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'misinukas' : IDL.Null, 'mamosPienas' : IDL.Null })], [], []),
+  'addMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'left' : IDL.Null, 'right' : IDL.Null, 'both' : IDL.Null })], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'calculateAgeInDays' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
     'completeBreastfeedingSession' : IDL.Func([IDL.Text], [], []),
     'completeTummyTimeSession' : IDL.Func([IDL.Text], [], []),
     'deleteJournalNote' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'deleteWeightEntry' : IDL.Func([IDL.Text, IDL.Text], [], []),
+    'deleteFeedingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
+    'deleteMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'deleteFeedingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'deleteMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'generateChildInviteLink' : IDL.Func([IDL.Text], [IDL.Text], []),
     'generateInviteCode' : IDL.Func([], [IDL.Text], []),
     'getActiveBreastfeedingTimer' : IDL.Func(
@@ -483,7 +534,17 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
-    'getWeightEntriesForChild' : IDL.Func(
+    'getFeedingSessionsForChild' : IDL.Func(
+    [IDL.Text],
+    [IDL.Vec(FeedingSession)],
+    ['query'],
+  ),
+  'getMilkPumpingSessionsForChild' : IDL.Func(
+    [IDL.Text],
+    [IDL.Vec(MilkPumpingSession)],
+    ['query'],
+  ),
+  'getWeightEntriesForChild' : IDL.Func(
         [IDL.Text],
         [IDL.Vec(WeightEntry)],
         ['query'],

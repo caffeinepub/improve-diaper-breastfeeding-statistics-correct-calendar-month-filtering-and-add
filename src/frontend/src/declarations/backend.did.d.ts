@@ -89,6 +89,20 @@ export interface WeightEntry {
   'weightId' : string,
   'timestamp' : bigint,
 }
+export interface MilkPumpingSession {
+  'sessionId' : string,
+  'childId' : string,
+  'timestamp' : bigint,
+  'mlAmount' : number,
+  'side' : { 'left' : null } | { 'right' : null } | { 'both' : null },
+}
+export interface FeedingSession {
+  'sessionId' : string,
+  'childId' : string,
+  'timestamp' : bigint,
+  'mlAmount' : number,
+  'feedingType' : { 'misinukas' : null } | { 'mamosPienas' : null },
+}
 export interface _CaffeineStorageCreateCertificateResult {
   'method' : string,
   'blob_hash' : string,
@@ -128,12 +142,16 @@ export interface _SERVICE {
     undefined
   >,
   'addWeightEntry' : ActorMethod<[string, number, bigint], undefined>,
+  'addFeedingSession' : ActorMethod<[string, bigint, number, { 'misinukas' : null } | { 'mamosPienas' : null }], undefined>,
+  'addMilkPumpingSession' : ActorMethod<[string, bigint, number, { 'left' : null } | { 'right' : null } | { 'both' : null }], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'calculateAgeInDays' : ActorMethod<[string], bigint>,
   'completeBreastfeedingSession' : ActorMethod<[string], undefined>,
   'completeTummyTimeSession' : ActorMethod<[string], undefined>,
   'deleteJournalNote' : ActorMethod<[string, string], undefined>,
   'deleteWeightEntry' : ActorMethod<[string, string], undefined>,
+  'deleteFeedingSession' : ActorMethod<[string, string], undefined>,
+  'deleteMilkPumpingSession' : ActorMethod<[string, string], undefined>,
   'generateChildInviteLink' : ActorMethod<[string], string>,
   'generateInviteCode' : ActorMethod<[], string>,
   'getActiveBreastfeedingTimer' : ActorMethod<
@@ -169,6 +187,8 @@ export interface _SERVICE {
     Array<TummyTimeSession>
   >,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getFeedingSessionsForChild' : ActorMethod<[string], Array<FeedingSession>>,
+  'getMilkPumpingSessionsForChild' : ActorMethod<[string], Array<MilkPumpingSession>>,
   'getWeightEntriesForChild' : ActorMethod<[string], Array<WeightEntry>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'logDiaperChange' : ActorMethod<
