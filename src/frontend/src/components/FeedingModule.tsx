@@ -69,8 +69,9 @@ export default function FeedingModule({ childId }: FeedingModuleProps) {
       setOpen(false);
       setMlAmount("");
       setSelectedType("misinukas");
-    } catch {
-      toast.error("Nepavyko išsaugoti");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Nepavyko išsaugoti: ${msg}`);
     }
   };
 
@@ -79,7 +80,7 @@ export default function FeedingModule({ childId }: FeedingModuleProps) {
     try {
       await deleteSession.mutateAsync({ childId, sessionId });
       toast.success("Įrašas ištrintas");
-    } catch {
+    } catch (_err: unknown) {
       toast.error("Nepavyko ištrinti");
     }
   };

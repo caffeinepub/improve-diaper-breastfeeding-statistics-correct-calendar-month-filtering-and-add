@@ -453,8 +453,6 @@ export const idlFactory = ({ IDL }) => {
     'addWeightEntry' : IDL.Func([IDL.Text, IDL.Float64, IDL.Int], [], []),
     'addFeedingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'misinukas' : IDL.Null, 'mamosPienas' : IDL.Null })], [], []),
     'addMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'left' : IDL.Null, 'right' : IDL.Null, 'both' : IDL.Null })], [], []),
-  'addFeedingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'misinukas' : IDL.Null, 'mamosPienas' : IDL.Null })], [], []),
-  'addMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Int, IDL.Float64, IDL.Variant({ 'left' : IDL.Null, 'right' : IDL.Null, 'both' : IDL.Null })], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'calculateAgeInDays' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
     'completeBreastfeedingSession' : IDL.Func([IDL.Text], [], []),
@@ -463,8 +461,6 @@ export const idlFactory = ({ IDL }) => {
     'deleteWeightEntry' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'deleteFeedingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'deleteMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
-  'deleteFeedingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
-  'deleteMilkPumpingSession' : IDL.Func([IDL.Text, IDL.Text], [], []),
     'generateChildInviteLink' : IDL.Func([IDL.Text], [IDL.Text], []),
     'generateInviteCode' : IDL.Func([], [IDL.Text], []),
     'getActiveBreastfeedingTimer' : IDL.Func(
