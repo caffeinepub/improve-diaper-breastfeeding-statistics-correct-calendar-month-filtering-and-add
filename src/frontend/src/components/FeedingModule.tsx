@@ -1,15 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import React, { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
@@ -44,11 +38,16 @@ export default function FeedingModule({ childId }: FeedingModuleProps) {
   const addSession = useAddFeedingSession();
   const deleteSession = useDeleteFeedingSession();
 
-  const [open, setOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<"misinukas" | "mamosPienas">(
     "misinukas",
   );
   const [mlAmount, setMlAmount] = useState("");
+
+  const resetForm = () => {
+    setMlAmount("");
+    setSelectedType("misinukas");
+  };
 
   const handleAdd = async () => {
     if (!childId) return;
@@ -66,9 +65,8 @@ export default function FeedingModule({ childId }: FeedingModuleProps) {
         feedingType: selectedType,
       });
       toast.success("Maitinimas išsaugotas");
-      setOpen(false);
-      setMlAmount("");
-      setSelectedType("misinukas");
+      setFormOpen(false);
+      resetForm();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Nepavyko išsaugoti: ${msg}`);
@@ -151,82 +149,98 @@ export default function FeedingModule({ childId }: FeedingModuleProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Maitinimas</h2>
-        <Dialog
-          open={open}
-          onOpenChange={(o) => {
-            setOpen(o);
-            if (o) {
-              setMlAmount("");
-              setSelectedType("misinukas");
+        <Button
+          size="sm"
+          className="gap-1"
+          onClick={() => {
+            if (formOpen) {
+              setFormOpen(false);
+              resetForm();
+            } else {
+              setFormOpen(true);
             }
           }}
+          data-ocid="feeding.open_modal_button"
         >
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-1">
-              <Plus className="h-4 w-4" /> Pridėti
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Nauja maitinimo sesija</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              {/* Type selector */}
-              <div>
-                <Label className="mb-2 block text-sm font-medium">Tipas</Label>
-                <div className="flex gap-2">
-                  {(["misinukas", "mamosPienas"] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setSelectedType(type)}
-                      className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
-                        selectedType === type
-                          ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-400 dark:bg-pink-950/30 dark:text-pink-300"
-                          : "border-border bg-card text-muted-foreground hover:border-pink-300"
-                      }`}
-                    >
-                      {TYPE_LABELS[type]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* ML amount */}
-              <div>
-                <Label
-                  htmlFor="feed-ml"
-                  className="mb-1 block text-sm font-medium"
-                >
-                  Kiekis (ml)
-                </Label>
-                <Input
-                  id="feed-ml"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  placeholder="pvz. 120"
-                  value={mlAmount}
-                  onChange={(e) => setMlAmount(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                Laikas bus automatiškai užfiksuotas kaip dabar.
-              </p>
-
-              <Button
-                className="w-full"
-                onClick={handleAdd}
-                disabled={addSession.isPending}
-              >
-                {addSession.isPending ? "Saugoma..." : "Išsaugoti"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+          {formOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {formOpen ? "Uždaryti" : "Pridėti"}
+        </Button>
       </div>
+
+      {/* Inline form */}
+      <AnimatePresence>
+        {formOpen && (
+          <motion.div
+            key="feeding-inline-form"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            style={{ overflow: "hidden" }}
+          >
+            <Card className="border-border bg-card/80">
+              <CardContent className="space-y-4 p-4" data-ocid="feeding.panel">
+                {/* Type selector */}
+                <div>
+                  <Label className="mb-2 block text-sm font-medium">
+                    Tipas
+                  </Label>
+                  <div className="flex gap-2">
+                    {(["misinukas", "mamosPienas"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setSelectedType(type)}
+                        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                          selectedType === type
+                            ? "border-pink-500 bg-pink-50 text-pink-700 ring-2 ring-pink-400 dark:bg-pink-950/30 dark:text-pink-300"
+                            : "border-border bg-card text-muted-foreground hover:border-pink-300"
+                        }`}
+                      >
+                        {TYPE_LABELS[type]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ML amount */}
+                <div>
+                  <Label
+                    htmlFor="feed-ml"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    Kiekis (ml)
+                  </Label>
+                  <Input
+                    id="feed-ml"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="pvz. 120"
+                    value={mlAmount}
+                    onChange={(e) => setMlAmount(e.target.value)}
+                    data-ocid="feeding.input"
+                    autoFocus
+                  />
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Laikas bus automatiškai užfiksuotas kaip dabar.
+                </p>
+
+                <Button
+                  className="w-full"
+                  onClick={handleAdd}
+                  disabled={addSession.isPending}
+                  data-ocid="feeding.submit_button"
+                >
+                  {addSession.isPending ? "Saugoma..." : "Išsaugoti"}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
@@ -268,9 +282,14 @@ export default function FeedingModule({ childId }: FeedingModuleProps) {
         </CardHeader>
         <CardContent className="space-y-2">
           {sorted.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Dar nėra įrašų.</p>
+            <p
+              className="text-sm text-muted-foreground"
+              data-ocid="feeding.empty_state"
+            >
+              Dar nėra įrašų.
+            </p>
           ) : (
-            sorted.slice(0, 20).map((s) => {
+            sorted.slice(0, 20).map((s, i) => {
               const ms = fromNsToMs(s.timestamp);
               const typeKey =
                 typeof s.feedingType === "object"
@@ -281,6 +300,7 @@ export default function FeedingModule({ childId }: FeedingModuleProps) {
               return (
                 <div
                   key={s.sessionId}
+                  data-ocid={`feeding.item.${i + 1}`}
                   className="flex items-center justify-between rounded-lg border border-border bg-card/50 px-3 py-2"
                 >
                   <div>
@@ -301,6 +321,7 @@ export default function FeedingModule({ childId }: FeedingModuleProps) {
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-destructive"
                     onClick={() => handleDelete(s.sessionId)}
+                    data-ocid={`feeding.delete_button.${i + 1}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
